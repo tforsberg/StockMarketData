@@ -12,9 +12,10 @@ Please use and contribute to this project.  The more we contribute the better
 the project will become (and the more useful to all of us).
 
 
-PS: The initial release of this may have many things that very specific to my 
-configuration.  I am a long time programmer, but very new to Python.   I welcome
+PS: The initial release of this may have many things that are very specific to 
+my configuration.  I am a long time programmer, but new to Python.   I welcome
 all suggestions for improvment.
 
+See the wiki for more info...
 
 -Todd Forsberg
