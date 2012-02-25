@@ -1,124 +1,11 @@
-'''
-Created on Feb 12, 2012
+from StockMarketData import StockMarketData 
 
-@author: Todd
-'''
-from urllib import urlopen
-from BeautifulSoup import BeautifulSoup, Comment
-
-import sqlite3
-import time
 import zlib
+from BeautifulSoup import BeautifulSoup, Comment
+from urllib import urlopen
 import binascii
-
-#import bz2
-
-
-#import re
-
-# Constants
-dbfolder = "C:/GitHub/db/"
-dbfile = (dbfolder + 'investopedia.db3')
-
-#csvfile = (dbfolder + 'opthdr.csv')
-
-# Create a version of the database in RAM, this could also be a filename ending with .db
-conn = sqlite3.connect(dbfile)
-#conn.text_factory = str
-
-# Creates the SQLite cursor that is used to query the database
-qc = conn.cursor()
-
 import datetime
 
-#import pyBusinessProcess from pyFlex
-
-
-#now = datetime.datetime.now()
-#print now
-
-class StockMarketData:
-    '''
-    This is a base class for collecting stock market data
-    '''
-    
-    smd_version = 1.02
-    smd_delay = 2
-#    smd_limit = 100
-    
-    smd_dbfolder = "C:/GitHub/db/"
-    smd_dbfile = 'investopedia.db3'
-    smd_dbfilepath = (smd_dbfolder + smd_dbfile)
-    
-    smd_dbhtml = (smd_dbfolder + "backup.db3")
-    
-    backup_conn = sqlite3.connect(smd_dbhtml)
-    backup_crsr = backup_conn.cursor()
-    
-    # Class Properties # formerly in Investopedia class
-    guid = ""
-    symbol = ''
-    url = ''
-    call = []
-    put = []
-    TradeTime = ''
-    LastTrade = 0.0
-
-        
-    def dateTimeStringWithMilliSec(self):
-        utcnow = datetime.datetime.utcnow()
-        strnow = str(utcnow)[0:23]
-        st1 = strnow.replace("-", "")
-        st1 = st1.replace(":", "")
-        st1 = st1.replace(".", "-")
-        st1 = st1.replace(" ", "-")
-        return st1
-        
-    def dateTimeString(self):
-        dts = self.dateTimeStringWithMilliSec()
-        strnow = dts[0:15]
-        return strnow
-
-    def printCompression(self, lenUncompressed, lenCompressed):
-        print "compression:", lenUncompressed, lenCompressed,
-        print (float(lenCompressed) / float(lenUncompressed) * 100.0 ), "%"
-        
-    def doCommit(self):
-        conn.commit()
-
-
-    def onProcess(self, num):
-        i = 0
-        while i < num:
-            self.processSymbols()
-            self.doCommit()
-            i = i+1
-
-            # http://stackoverflow.com/questions/64468/leaving-a-time-delay-in-python
-            time.sleep(self.smd_delay / 2.0) # give other processes a chance to commit
-            print('process ' + str(i) + ' of ' + str(num) + ' completed.')
-            time.sleep(self.smd_delay / 2.0) # don't pound the server
-        
-    def doProcess(self, num):
-        self.onProcess(num)
-#        print self
-
-    def logError(self, msg):
-        q = conn.cursor()
-        dtn = datetime.datetime.now()
-        print dtn, msg
-        statement = ("INSERT INTO Error (msg, symbol, when1, url) VALUES (?,?,?,?) ")    
-        q.execute(statement, (msg, self.symbol, dtn, self.url))
-
-    def saveHtmlInDb(self, data):
-        compressed = binascii.b2a_hex(zlib.compress(data))
-        self.printCompression(len(data), len(compressed))
-        self.backup_crsr.execute("INSERT INTO html (hex, format) VALUES (?,?)", [compressed, 'hex'])
-        self.backup_conn.commit()
-        
-    def generateGUID(self):
-        #TODO: Need to make a function to generate GUID's
-        print "TODO: Need to make a function to generate GUID's"
 
 class Investopedia(StockMarketData):
     '''
@@ -128,7 +15,7 @@ class Investopedia(StockMarketData):
     
     def saveRow(self, row):
         debug = 1        
-        q = conn.cursor()
+        q = self.conn.cursor()
         statement = ("""
             INSERT INTO OptionDetail (OptionHeader_ID, StockPrice, OptionSymbol, StrikePrice, TradeTime, Last, Change, 
                                       Bid, BidNum, Ask, AskNum, Volume, OpenInterest, Type, AppVersion, Created_DTS ) 
@@ -151,7 +38,7 @@ class Investopedia(StockMarketData):
         
     def updateHeaderRow(self):
         # Update the OptionHeader row to show that it has been retrieved
-        qc2 = conn.cursor()
+        qc2 = self.conn.cursor()
         dtn = datetime.datetime.now()
         if self.call:
             statement = ("""UPDATE OptionHeader SET LastRetrieved = ?,
@@ -170,7 +57,7 @@ class Investopedia(StockMarketData):
     
     def updateOptionChainLink(self, url):
         print "TODO: " + url
-        qc3 = conn.cursor()
+        qc3 = self.conn.cursor()
         gotone = 0
         
         statement = ("SELECT id FROM OptionHeader WHERE url = ? ")
@@ -305,26 +192,25 @@ class Investopedia(StockMarketData):
         htmlfile = ("quotes\\" + symbol + "-" + dts + '.html')
         print htmlfile
         
-        f = open(dbfolder + htmlfile, 'w')
+        f = open(self.dbfolder + htmlfile, 'w')
         f.write(data)
         f.close()
         
         self.saveHtmlInDb(data)
 
     def processSymbols(self):
-        qc = conn.cursor()
+        qc = self.conn.cursor()
 
         print '======================'
         self.backup_crsr.execute("SELECT Count(*) FROM html")
-#        print self.backup_crsr
         for i in self.backup_crsr:
             print 'HTML backup records: ' + str(i[0])
-
-#        qc.execute("SELECT Count(*) FROM OptionHeader WHERE LastRetrieved is null")
-#        for i in qc:
-#            print i
-                
-        qc.execute("SELECT ID, StockSymbol, url FROM OptionHeader ORDER BY LastRetrieved LIMIT 1" )
+        
+        statement = """SELECT ID, StockSymbol, url FROM OptionHeader
+                       WHERE (Year = 2012 and Month >= 3) or (Year > 2012)
+                       ORDER BY LastRetrieved 
+                       LIMIT 1""" 
+        qc.execute(statement)
 
         for i in qc:
             self.guid = i[0]
@@ -332,11 +218,11 @@ class Investopedia(StockMarketData):
             self.url = i[2]
             print '----------------------'
             print self.symbol, self.url, self.guid
-            Investopedia.processPage(self, self.symbol, self.url)
+            self.processPage(self.symbol, self.url)
                                     
     def compressUnprocessed(self):
-        qc = conn.cursor()
-        qc2 = conn.cursor()
+        qc = self.conn.cursor()
+        qc2 = self.conn.cursor()
         
         qc.execute("SELECT * FROM Unprocessed WHERE data is not null LIMIT 1" )
         
@@ -346,10 +232,10 @@ class Investopedia(StockMarketData):
             print 'Compressed   :', len(compressed), compressed
             qc2.execute("UPDATE unprocessed SET compressed=? WHERE data=?", [compressed, data])
 
-        conn.commit()
+        self.conn.commit()
 
     def testReadingCompressed(self):
-        qc = conn.cursor()
+        qc = self.conn.cursor()
 #        qc2 = conn.cursor()
         
         qc.execute("SELECT hex FROM Unprocessed where format = 'hex' LIMIT 1 OFFSET 10" )
@@ -365,14 +251,3 @@ class Investopedia(StockMarketData):
             print self.printCompression(len(decompressed), len(compressed))
 #            qc2.execute("UPDATE unprocessed SET data=null, compressed=? WHERE data=?", [compressed, data])
             
-
-
-
-obj = Investopedia()
-obj.doProcess(100)
-
-#obj.compressUnprocessed()
-#obj.testReadingCompressed()
-
-print "All done!"
-
