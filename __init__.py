@@ -1,12 +1,12 @@
 
 #from v1 import *
-#from Investopedia import 
+#from Investopedia import
 
 # Base Class = StockMarketData
-import v1
+#import v3
 
 # Sub-class for Investopedia.com
-import Investopedia
+#import Investopedia
 
 # Sub-class for Finance.Yahoo.com
 

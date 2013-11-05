@@ -5,8 +5,6 @@ import zlib
 from bs4 import BeautifulSoup
 
 #from urllib import urlopen
-import urllib
-
 import binascii
 import datetime
 
@@ -24,7 +22,7 @@ class StockMarketData:
     smd_delay = 2
 #    smd_limit = 100
 
-    smd_dbfolder = "C:/GitHub/db/"
+    smd_dbfolder = "./"
     smd_dbfile = 'investopedia.db3'
     smd_dbfilepath = (smd_dbfolder + smd_dbfile)
 
@@ -34,7 +32,7 @@ class StockMarketData:
     backup_crsr = backup_conn.cursor()
 
     # Constants
-    dbfolder = "C:/GitHub/db/"
+    dbfolder = "./"
     dbfile = (dbfolder + 'investopedia.db3')
 
     # Create a version of the database in RAM, this could also be a filename ending with .db
@@ -112,18 +110,3 @@ class StockMarketData:
         pass
 
 
-
-
-
-
-
-
-#class MyTest:
-
-#    def hello(self):
-#        print "Hello, Hello, Hello..."
-
-
-
-#def GotIt():
-#    print "I got it"
